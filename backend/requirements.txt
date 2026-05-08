@@ -1,0 +1,27 @@
+# Flask and dependencies
+Flask==3.0.0
+Flask-CORS==4.0.0
+Werkzeug==3.0.0
+
+# TensorFlow and Keras
+tensorflow
+keras==3.0.0
+
+# Image processing
+Pillow==10.1.0
+
+# JWT Authentication
+PyJWT
+
+# Database (when integrated)
+# psycopg2-binary==2.9.9  # PostgreSQL adapter
+# supabase==2.4.0  # Supabase client
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Web server (for production)
+gunicorn==21.2.0
+
+# Additional utilities
+numpy==1.24.3
