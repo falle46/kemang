@@ -10,15 +10,19 @@ import { useAuth } from '@/hooks/use-auth'
 export default function SignupPage() {
   const router = useRouter()
   const { signup } = useAuth()
-  const [username, setUsername] = useState('')
+  
+  // PERUBAHAN: Ganti state username menjadi email
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   const validateForm = () => {
-    if (username.length < 3) {
-      setError('Username minimal 3 karakter')
+    // Validasi email sederhana
+    if (!email.includes('@')) {
+      setError('Masukkan alamat email yang valid')
       return false
     }
     if (password.length < 6) {
@@ -26,7 +30,7 @@ export default function SignupPage() {
       return false
     }
     if (password !== confirmPassword) {
-      setError('Kata sandi tidak cocok')
+      setError('Konfirmasi kata sandi tidak cocok')
       return false
     }
     return true
@@ -43,8 +47,10 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      await signup(username, password)
-      router.push('/')
+      // PERUBAHAN: Memanggil fungsi signup dengan email
+      await signup(email, password)
+      alert('Pendaftaran berhasil! Silakan login untuk melanjutkan.')
+      router.push('/login')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Pendaftaran gagal')
     } finally {
@@ -53,7 +59,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -63,61 +69,55 @@ export default function SignupPage() {
             </div>
             <span className="font-bold text-lg text-foreground">Batik Kemang</span>
           </Link>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Daftar</h1>
-          <p className="text-muted-foreground">
-            Buat akun baru untuk menyimpan riwayat identifikasi batik Anda.
+          <h1 className="text-3xl font-bold text-foreground mb-2">Buat Akun Baru</h1>
+          <p className="text-muted-foreground text-sm px-4">
+            Daftar untuk menyimpan riwayat identifikasi dan mengelola preferensi batik Anda.
           </p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-card border border-border rounded-lg p-8 space-y-6">
+        <div className="bg-card border border-border rounded-xl p-6 sm:p-8 shadow-sm space-y-6">
+          
           {/* Error Message */}
           {error && (
-            <div className="flex items-start space-x-3 bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-destructive">{error}</p>
+            <div className="flex items-start space-x-3 bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+              <p className="text-sm text-destructive font-medium">{error}</p>
             </div>
           )}
 
-          {/* Features */}
-          <div className="bg-primary/5 rounded-lg p-4 space-y-2">
-            <div className="flex items-center space-x-2 text-sm">
+          {/* Features Highlights */}
+          <div className="bg-primary/5 rounded-lg p-4 space-y-2 mb-6 border border-primary/10">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="text-foreground">Simpan riwayat identifikasi</span>
+              <span>Simpan riwayat hasil identifikasi AI</span>
             </div>
-            <div className="flex items-center space-x-2 text-sm">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="text-foreground">Akses hasil kapan saja</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm">
-              <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="text-foreground">Kelola preferensi pribadi</span>
+              <span>Akses data historis kapan saja</span>
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-foreground mb-2">
-                Username
+              <label htmlFor="email" className="block text-sm font-semibold text-foreground mb-1.5">
+                Alamat Email
               </label>
               <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Pilih username unik Anda"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nama@email.com"
                 disabled={isLoading}
-                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                className="w-full px-4 py-2.5 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow disabled:opacity-50"
                 required
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Minimal 3 karakter, dapat berisi huruf, angka, dan underscore
-              </p>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+              <label htmlFor="password" className="block text-sm font-semibold text-foreground mb-1.5">
                 Kata Sandi
               </label>
               <input
@@ -125,28 +125,25 @@ export default function SignupPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Buat kata sandi yang kuat"
+                placeholder="Minimal 6 karakter"
                 disabled={isLoading}
-                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                className="w-full px-4 py-2.5 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow disabled:opacity-50"
                 required
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Minimal 6 karakter
-              </p>
             </div>
 
             <div>
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-foreground mb-2">
-                Konfirmasi Kata Sandi
+              <label htmlFor="confirm-password" className="block text-sm font-semibold text-foreground mb-1.5">
+                Konfirmasi Sandi
               </label>
               <input
                 id="confirm-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Ketik ulang kata sandi Anda"
+                placeholder="Ketik ulang sandi Anda"
                 disabled={isLoading}
-                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                className="w-full px-4 py-2.5 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow disabled:opacity-50"
                 required
               />
             </div>
@@ -154,38 +151,38 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary hover:bg-primary/90 flex items-center justify-center space-x-2"
+              className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg flex items-center justify-center space-x-2 transition-all"
             >
-              <UserPlus className="w-4 h-4" />
-              <span>{isLoading ? 'Sedang Mendaftar...' : 'Daftar'}</span>
+              <UserPlus className="w-5 h-5" />
+              <span>{isLoading ? 'Memproses Pendaftaran...' : 'Daftar Sekarang'}</span>
             </Button>
           </form>
 
           {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
+          <div className="relative pt-2">
+            <div className="absolute inset-0 flex items-center pt-2">
               <div className="w-full border-t border-border" />
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-card text-muted-foreground">atau</span>
+            <div className="relative flex justify-center text-sm pt-2">
+              <span className="px-3 bg-card text-muted-foreground">atau</span>
             </div>
           </div>
 
           {/* Login Link */}
-          <div className="text-center">
+          <div className="text-center pt-2">
             <p className="text-muted-foreground text-sm">
-              Sudah punya akun?{' '}
-              <Link href="/login" className="text-primary hover:underline font-medium">
+              Sudah memiliki akun?{' '}
+              <Link href="/login" className="text-primary hover:underline font-semibold transition-colors">
                 Masuk di sini
               </Link>
             </p>
           </div>
         </div>
 
-        {/* Back to Home */}
-        <div className="text-center mt-6">
-          <Link href="/" className="text-muted-foreground hover:text-primary text-sm transition-colors">
-            Kembali ke beranda
+        {/* Footer Link */}
+        <div className="text-center mt-8">
+          <Link href="/" className="text-muted-foreground hover:text-primary text-sm font-medium transition-colors">
+            &larr; Kembali ke halaman utama
           </Link>
         </div>
       </div>

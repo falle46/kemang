@@ -1,87 +1,68 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-
-interface User {
-  id: string
-  username: string
-  email?: string
-}
+import { supabase } from '@/lib/supabase'
+import { User } from '@supabase/supabase-js'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is logged in
+    // 1. Cek status login saat halaman pertama kali dimuat
     const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setUser(data.user)
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error)
-      } finally {
-        setIsLoading(false)
-      }
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
+      setIsLoading(false)
     }
 
     checkAuth()
+
+    // 2. Dengarkan perubahan (misal: user tiba-tiba logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
+  // Fungsi Logout Supabase
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      })
-      setUser(null)
-      window.location.href = '/'
+      await supabase.auth.signOut()
+      window.location.href = '/' // Lempar kembali ke beranda
     } catch (error) {
       console.error('Logout failed:', error)
     }
   }
 
-  const login = async (username: string, password: string) => {
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-        credentials: 'include',
-      })
-      if (!response.ok) {
-        throw new Error('Login failed')
-      }
-      const data = await response.json()
-      setUser(data.user)
-      return data
-    } catch (error) {
-      throw error
+  // Fungsi Login Supabase (Menggunakan Email, bukan Username)
+  const login = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    
+    if (error) {
+      throw new Error(error.message)
     }
+    
+    return data
   }
 
-  const signup = async (username: string, password: string) => {
-    try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-        credentials: 'include',
-      })
-      if (!response.ok) {
-        throw new Error('Signup failed')
-      }
-      const data = await response.json()
-      setUser(data.user)
-      return data
-    } catch (error) {
-      throw error
+  // Fungsi Daftar Supabase
+  const signup = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+    
+    if (error) {
+      throw new Error(error.message)
     }
+    
+    return data
   }
 
   return { user, isLoading, logout, login, signup }

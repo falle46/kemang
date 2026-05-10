@@ -1,35 +1,80 @@
 'use client'
 
+import { useState, useEffect, use } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Navigation } from '@/components/navigation'
 import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, CheckCircle2, AlertTriangle, Globe } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertTriangle, Globe, Loader2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
-export default function ResultPage() {
+export default function ResultPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const searchParams = useSearchParams()
   
-  const imageUrl = searchParams.get('img')
-  const batikType = searchParams.get('type') || 'Memproses...'
-  const confidence = searchParams.get('conf') || '0'
-  const description = searchParams.get('desc') || ''
+  // State untuk menampung data hasil
+  const [data, setData] = useState({
+    imageUrl: searchParams.get('img') || '',
+    batikType: searchParams.get('type') || '',
+    confidence: searchParams.get('conf') || '0',
+    description: searchParams.get('desc') || '',
+  })
+  
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    // Jika data di URL kosong (artinya dibuka dari Riwayat), tarik dari Supabase
+    if (!data.batikType && id) {
+      const fetchHistoryDetail = async () => {
+        setIsLoading(true)
+        try {
+          const { data: historyData, error } = await supabase
+            .from('history')
+            .select('*')
+            .eq('id', id)
+            .single()
+
+          if (error) throw error
+          if (historyData) {
+            setData({
+              imageUrl: historyData.image_url || '',
+              batikType: historyData.batik_type,
+              confidence: historyData.confidence.toString(),
+              description: historyData.description || 'Deskripsi tidak tersedia untuk riwayat ini.',
+            })
+          }
+        } catch (err) {
+          console.error("Gagal memuat detail riwayat:", err)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      fetchHistoryDetail()
+    }
+  }, [id, data.batikType])
 
   // Cek apakah hasilnya Batik Kemang asli
-  const isKemang = batikType === "Batik Kemang"
+  const isKemang = data.batikType === "Batik Kemang"
   
-  // Teks deskripsi umum Batik Indonesia (Yappingan untuk motif luar Kemang)
-  const indonesianBatikText = `Batik Indonesia adalah warisan kemanusiaan untuk budaya lisan dan nonbendawi yang telah diakui oleh UNESCO. Setiap motif batik di nusantara, mulai dari Jawa hingga luar Jawa, memiliki filosofi dan identitas unik yang mencerminkan kekayaan alam serta kebudayaan masyarakatnya. Keanekaragaman motif ini membuktikan bahwa batik bukan sekadar kain hias, melainkan medium komunikasi visual yang membawa pesan harapan, strata sosial, dan nilai-nilai luhur bangsa Indonesia yang telah diwariskan turun-temurun selama berabad-abad.`
+  const indonesianBatikText = `Batik Indonesia adalah warisan kemanusiaan untuk budaya lisan dan nonbendawi yang telah diakui oleh UNESCO. Setiap motif batik di nusantara memiliki filosofi dan identitas unik yang mencerminkan kekayaan alam serta kebudayaan masyarakatnya.`
 
-  // Teks deskripsi khusus Batik Kemang
-  const kemangBatikText = `Batik Kemang Bogor merupakan bentuk pelestarian budaya lokal yang mengintegrasikan motif flora khas Bogor seperti Pohon Kemang dan buah-buahan lokal ke dalam seni kain. Pengembangan motif ini bertujuan untuk memperkuat identitas wilayah Kemang serta memberdayakan komunitas pengrajin batik di daerah Bogor guna menjaga ekosistem kreatif lokal tetap tumbuh.`
+  const kemangBatikText = `Batik Kemang Bogor merupakan bentuk pelestarian budaya lokal yang mengintegrasikan motif flora khas Bogor seperti Pohon Kemang dan buah-buahan lokal ke dalam seni kain.`
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+        <p className="text-muted-foreground font-medium">Memuat Hasil Analisis...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
 
       <main className="flex-grow max-w-4xl mx-auto px-4 py-12 w-full">
-        {/* Tombol Kembali */}
         <Link href="/" className="inline-flex items-center space-x-2 text-muted-foreground hover:text-primary mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali ke Identifikasi</span>
@@ -37,30 +82,30 @@ export default function ResultPage() {
 
         <div className="grid md:grid-cols-2 gap-12 items-start">
           
-          {/* SISI KIRI: Foto yang Diinput User */}
+          {/* SISI KIRI: Foto */}
           <div className="space-y-4">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Gambar yang Diuji</p>
             <div className="aspect-square relative rounded-2xl overflow-hidden border-4 border-card shadow-2xl bg-muted">
-              {imageUrl ? (
+              {data.imageUrl ? (
                 <img 
-                  src={imageUrl} 
-                  alt="User Uploaded Batik" 
+                  src={data.imageUrl} 
+                  alt="Batik Terdeteksi" 
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  Gambar tidak ditemukan
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
+                  <AlertTriangle className="w-10 h-10 mb-2 opacity-20" />
+                  <p className="text-sm">Gambar tidak tersedia di riwayat ini</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* SISI KANAN: Hasil AI & Deskripsi */}
+          {/* SISI KANAN: Hasil AI */}
           <div className="space-y-8">
             <div>
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Analisis ResNet-50</p>
               
-              {/* Badge Status */}
               <div className="flex flex-wrap items-center gap-3 mb-4">
                 {isKemang ? (
                   <div className="flex items-center text-green-700 bg-green-100 px-4 py-1.5 rounded-full text-xs font-bold border border-green-200">
@@ -74,16 +119,15 @@ export default function ResultPage() {
                   </div>
                 )}
                 <div className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold border border-primary/20">
-                  Akurasi: {parseFloat(confidence).toFixed(2)}%
+                  Akurasi: {parseFloat(data.confidence).toFixed(2)}%
                 </div>
               </div>
 
               <h1 className="text-4xl font-black text-foreground leading-tight tracking-tight uppercase">
-                {batikType}
+                {data.batikType || "Tidak Diketahui"}
               </h1>
             </div>
 
-            {/* Kontainer Deskripsi */}
             <div className="bg-card border border-border p-6 rounded-2xl shadow-sm leading-relaxed">
               <h3 className="font-bold text-foreground mb-3 flex items-center">
                 {isKemang ? "Detail Batik Kemang" : "Wawasan Batik Indonesia"}
@@ -91,10 +135,10 @@ export default function ResultPage() {
               
               <div className="space-y-4 text-sm text-muted-foreground">
                 <p className="font-medium text-foreground italic">
-                   &quot;{description}&quot;
+                   &quot;{data.description}&quot;
                 </p>
                 
-                <p className="pt-4 border-t border-border/50">
+                <p className="pt-4 border-t border-border/50 text-justify">
                   {isKemang ? kemangBatikText : indonesianBatikText}
                 </p>
               </div>

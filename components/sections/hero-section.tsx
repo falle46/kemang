@@ -6,6 +6,7 @@ import { Upload, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { LoginPromptModal } from '@/components/modals/login-prompt-modal'
+import { supabase } from '@/lib/supabase'
 
 export function HeroSection() {
   const router = useRouter()
@@ -64,21 +65,67 @@ export function HeroSection() {
 
       const responseData = await response.json()
       
-      // Buat URL sementara untuk file gambar agar bisa tampil di halaman sebelah
-      const tempImageUrl = URL.createObjectURL(fileToUpload)
+      let historyId = responseData.data.class_id; 
+      let finalImageUrl = URL.createObjectURL(fileToUpload); // Fallback jika belum login
+
+      if (user) {
+        // 1. Upload Gambar ke Supabase Storage (Bucket: history_images)
+        const cleanFileName = fileToUpload.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        
+        // PERBAIKAN DI SINI: Tambahkan user.id dan garis miring (/) agar masuk ke folder
+        const filePath = `${user.id}/${Date.now()}-${cleanFileName}`; 
+        
+        const { error: uploadError } = await supabase.storage
+          .from('history_images')
+          .upload(filePath, fileToUpload) // Gunakan filePath, bukan fileName
+
+        if (uploadError) {
+          console.error("Gagal upload gambar ke storage:", uploadError)
+          throw new Error('Gagal mengunggah gambar ke server penyimpanan.')
+        }
+
+        // 2. Dapatkan URL Public dari gambar yang baru diupload
+        const { data: { publicUrl } } = supabase.storage
+          .from('history_images')
+          .getPublicUrl(filePath) // Gunakan filePath di sini juga
+          
+        finalImageUrl = publicUrl;
+
+        // 3. Simpan seluruh data ke Tabel History
+        const { data: insertData, error: insertError } = await supabase
+          .from('history')
+          .insert([
+            {
+              user_id: user.id,
+              batik_type: responseData.data.batik_type,
+              confidence: responseData.data.confidence,
+              description: responseData.data.description,
+              image_url: finalImageUrl 
+            }
+          ])
+          .select()
+          .single()
+
+        if (insertError) {
+          console.error("Gagal menyimpan riwayat ke database:", insertError)
+        } else if (insertData) {
+          historyId = insertData.id; 
+        }
+      }
 
       // Kirim data via Query Parameters
       const params = new URLSearchParams({
-        img: tempImageUrl,
+        img: finalImageUrl,
         type: responseData.data.batik_type,
         conf: responseData.data.confidence.toString(),
         desc: responseData.data.description
       }).toString()
 
-      router.push(`/result/${responseData.data.class_id}?${params}`)
+      // Pindah ke halaman hasil
+      router.push(`/result/${historyId}?${params}`)
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memproses gambar')
     } finally {
       setIsLoading(false)
     }
@@ -118,7 +165,7 @@ export function HeroSection() {
               Identifikasi Batik Kemang
             </h1>
             <p className="text-xl text-muted-foreground mb-2">
-              Gunakan AI untuk mengidentifikasi motif batik tradisional Indonesia
+              Gunakan AI untuk mengidentifikasi motif Batik Kemang Bogor dengan arsitektur ResNet-50
             </p>
           </div>
 
@@ -128,12 +175,13 @@ export function HeroSection() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               className={`block border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all ${
-                isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                isDragging ? 'border-primary bg-primary/5 scale-105' : 'border-border hover:border-primary/50'
               }`}
             >
               <div className="flex flex-col items-center space-y-3">
                 <Upload className="w-12 h-12 text-primary" />
                 <p className="font-semibold text-foreground">Seret atau klik untuk pilih gambar</p>
+                <p className="text-sm text-muted-foreground">Mendukung file .jpg, .png, .jpeg (Maks 5MB)</p>
               </div>
               <input type="file" accept="image/*" onChange={handleFileInput} disabled={isLoading} className="hidden" />
             </label>
@@ -141,15 +189,15 @@ export function HeroSection() {
 
           {error && (
             <div className="flex items-center space-x-3 bg-destructive/10 text-destructive p-4 rounded-lg mb-6 text-sm">
-              <AlertCircle className="w-5 h-5" />
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <p>{error}</p>
             </div>
           )}
 
           {isLoading && (
-            <div className="flex items-center justify-center space-x-3 bg-primary/10 p-4 rounded-lg">
-              <div className="w-4 h-4 rounded-full bg-primary animate-bounce" />
-              <p className="text-sm font-medium text-primary">Model ResNet-50 sedang bekerja...</p>
+            <div className="flex flex-col items-center justify-center space-y-3 bg-primary/5 border border-primary/20 p-6 rounded-lg">
+              <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+              <p className="text-sm font-semibold text-primary">Model ResNet-50 sedang menganalisis gambar...</p>
             </div>
           )}
         </div>
