@@ -53,7 +53,7 @@ export function HeroSection() {
       const formData = new FormData()
       formData.append('image', fileToUpload)
 
-      const apiUrl = 'http://localhost:5000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
       const response = await fetch(`${apiUrl}/api/identify`, {
         method: 'POST',
         body: formData,
