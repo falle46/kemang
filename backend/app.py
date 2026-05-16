@@ -86,22 +86,22 @@ def identify_batik_logic(image_data):
     # Ambil nama label asli dari daftar
     raw_label = BATIK_CLASSES.get(class_id, 'Unknown')
     
-    # Tentukan Threshold (Sesuai Colab: 0.7 atau 70%)
-    threshold = 0.7
+    # Tentukan Threshold (Ambang Batas OOD)
+    threshold = 0.8
     
     if confidence < threshold:
-        # Skenario 3: Tidak Dikenali
-        batik_type = "Bukan Batik Kemang"
-        description = "Gambar tidak cukup jelas atau sistem tidak mengenali motif ini sebagai bagian dari database Batik Kemang Bogor."
+        # Skenario 3: Gambar sama sekali bukan batik (Out-of-Distribution)
+        batik_type = "Bukan Gambar Batik"
+        description = "Gambar ini tidak terdeteksi sebagai pola batik. Objek berada di luar domain pelestarian sistem."
     else:
         if raw_label.lower() == 'kemang':
             # Skenario 1: Ini Batik Kemang
             batik_type = "Batik Kemang"
             description = "Ini adalah Batik Kemang asli Bogor. Motif ini telah terdata dalam koleksi pelestarian budaya."
         else:
-            # Skenario 2: Bukan Batik Kemang, tapi mirip motif lain
-            batik_type = f"Bukan Batik Kemang (Terlihat seperti Batik {raw_label})"
-            description = f"Model mendeteksi motif ini memiliki kemiripan visual dengan Batik {raw_label}."
+            # Skenario 2: Bukan Batik Kemang, tapi motif batik lain
+            batik_type = f"Ini bukan batik kemang, terlihat seperti {raw_label}"
+            description = f"Model mendeteksi motif ini memiliki kemiripan visual dengan pola Batik {raw_label}."
 
     return {
         'class_id': int(class_id),
