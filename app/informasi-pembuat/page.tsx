@@ -104,6 +104,16 @@ export default function DeveloperPage() {
           </div>
           
           <div className="space-y-8">
+             {/* Kedua Orang Tua */}
+             <div>
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 bg-muted inline-block px-3 py-1 rounded-md">Keluarga Tercinta</p>
+                <div className="flex items-start bg-primary/5 border border-primary/10 p-5 rounded-xl">
+                  <span className="text-foreground leading-relaxed">
+                    Terima kasih yang tak terhingga dan sembah sujud ananda persembahkan kepada <strong>Kedua Orang Tua Tercinta</strong>. Atas segala doa yang tiada henti, cucuran keringat, kasih sayang, serta dukungan baik moral maupun material yang luar biasa sehingga penulis dapat menyelesaikan pendidikan dan tugas akhir ini dengan baik.
+                  </span>
+                </div>
+             </div>
+
              {/* Penasihat */}
              <div>
                 <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 bg-muted inline-block px-3 py-1 rounded-md">Penasihat & Narasumber Utama</p>
